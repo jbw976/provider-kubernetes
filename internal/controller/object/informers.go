@@ -52,6 +52,8 @@ type resourceInformers struct {
 	config       *rest.Config
 	objectsCache cache.Cache
 	sink         func(providerConfig string, ev runtimeevent.GenericEvent)
+	handler      handler.EventHandler
+	ps           []predicate.Predicate
 
 	lock sync.RWMutex // everything below is protected by this lock
 	// resourceCaches holds the resource caches. These are dynamically started
@@ -77,17 +79,17 @@ var _ source.Source = &resourceInformers{}
 // Start implements source.Source, i.e. starting resourceInformers as
 // source with h as the sink of update events. It keeps sending events until
 // ctx is done.
-func (i *resourceInformers) Start(ctx context.Context, h handler.EventHandler, q workqueue.RateLimitingInterface, ps ...predicate.Predicate) error {
+func (i *resourceInformers) Start(ctx context.Context, q workqueue.RateLimitingInterface) error {
 	if i.sink != nil {
 		return errors.New("source already started, cannot start it again")
 	}
 	i.sink = func(providerConfig string, ev runtimeevent.GenericEvent) {
-		for _, p := range ps {
+		for _, p := range i.ps {
 			if !p.Generic(ev) {
 				return
 			}
 		}
-		h.Generic(context.WithValue(ctx, keyProviderConfigName, providerConfig), ev, q)
+		i.handler.Generic(context.WithValue(ctx, keyProviderConfigName, providerConfig), ev, q)
 	}
 
 	go func() {

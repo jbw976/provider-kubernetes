@@ -168,6 +168,11 @@ func Setup(mgr ctrl.Manager, o controller.Options, sanitizeSecrets bool, pollJit
 		i := resourceInformers{
 			log:    l,
 			config: mgr.GetConfig(),
+			handler: handler.Funcs{
+				GenericFunc: func(ctx context.Context, ev runtimeevent.GenericEvent, q workqueue.RateLimitingInterface) {
+					enqueueObjectsForReferences(ca, l)(ctx, ev, q)
+				},
+			},
 
 			objectsCache:   ca,
 			resourceCaches: make(map[gvkWithConfig]resourceCache),
@@ -181,16 +186,16 @@ func Setup(mgr ctrl.Manager, o controller.Options, sanitizeSecrets bool, pollJit
 			return errors.Wrap(err, "cannot add cleanup referenced resource informers runnable")
 		}
 
-		cb = cb.WatchesRawSource(&i, handler.Funcs{
-			GenericFunc: func(ctx context.Context, ev runtimeevent.GenericEvent, q workqueue.RateLimitingInterface) {
-				enqueueObjectsForReferences(ca, l)(ctx, ev, q)
-			},
-		})
+		cb = cb.WatchesRawSource(&i)
 	}
 	reconcilerOptions = append(reconcilerOptions, managed.WithExternalConnecter(conn))
 
 	if o.Features.Enabled(feature.EnableBetaManagementPolicies) {
 		reconcilerOptions = append(reconcilerOptions, managed.WithManagementPolicies())
+	}
+
+	if o.Features.Enabled(feature.EnableAlphaChangeLogs) {
+		reconcilerOptions = append(reconcilerOptions, managed.WithChangeLogs(o.ChangeLogClient))
 	}
 
 	if err := mgr.Add(statemetrics.NewMRStateRecorder(

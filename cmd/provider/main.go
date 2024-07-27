@@ -44,6 +44,11 @@ import (
 	"github.com/crossplane-contrib/provider-kubernetes/internal/features"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
+	crv1alpha1 "github.com/crossplane/crossplane-runtime/apis/proto/v1alpha1"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -66,6 +71,7 @@ func main() {
 
 		enableManagementPolicies = app.Flag("enable-management-policies", "Enable support for Management Policies.").Default("true").Envar("ENABLE_MANAGEMENT_POLICIES").Bool()
 		enableWatches            = app.Flag("enable-watches", "Enable support for watching resources.").Default("false").Envar("ENABLE_WATCHES").Bool()
+		enableChangeLogs         = app.Flag("enable-change-logs", "Enable support for capturing change logs during reconciliation.").Default("false").Envar("ENABLE_CHANGE_LOGS").Bool()
 	)
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -158,6 +164,16 @@ func main() {
 	if *enableWatches {
 		o.Features.Enable(features.EnableAlphaWatches)
 		log.Info("Alpha feature enabled", "flag", features.EnableAlphaWatches)
+	}
+
+	if *enableChangeLogs {
+		o.Features.Enable(feature.EnableAlphaChangeLogs)
+		log.Info("Alpha feature enabled", "flag", feature.EnableAlphaChangeLogs)
+		socketPath := "/var/run/change-logs/change-logs.sock"
+
+		conn, err := grpc.NewClient("unix://"+socketPath, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		kingpin.FatalIfError(err, "failed to create change logs client connection")
+		o.ChangeLogClient = crv1alpha1.NewChangeLogServiceClient(conn)
 	}
 
 	// NOTE(lsviben): We are registering the conversion webhook with v1alpha1
