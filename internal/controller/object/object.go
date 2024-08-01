@@ -195,7 +195,7 @@ func Setup(mgr ctrl.Manager, o controller.Options, sanitizeSecrets bool, pollJit
 	}
 
 	if o.Features.Enabled(feature.EnableAlphaChangeLogs) {
-		reconcilerOptions = append(reconcilerOptions, managed.WithChangeLogs(o.ChangeLogClient))
+		reconcilerOptions = append(reconcilerOptions, managed.WithChangeLogs(o.ChangeLogOptions.ChangeLogClient, o.ChangeLogOptions.ProviderVersion))
 	}
 
 	if err := mgr.Add(statemetrics.NewMRStateRecorder(
@@ -379,6 +379,10 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	return errors.Wrap(resource.IgnoreNotFound(c.client.Delete(ctx, obj)), errDeleteObject)
+}
+
+func (c *external) Disconnect(ctx context.Context) error {
+	return nil
 }
 
 func getDesired(obj *v1alpha2.Object) (*unstructured.Unstructured, error) {

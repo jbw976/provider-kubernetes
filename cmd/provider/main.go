@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -42,6 +43,7 @@ import (
 	"github.com/crossplane-contrib/provider-kubernetes/apis/object/v1alpha1"
 	object "github.com/crossplane-contrib/provider-kubernetes/internal/controller"
 	"github.com/crossplane-contrib/provider-kubernetes/internal/features"
+	"github.com/crossplane-contrib/provider-kubernetes/internal/version"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -173,7 +175,12 @@ func main() {
 
 		conn, err := grpc.NewClient("unix://"+socketPath, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		kingpin.FatalIfError(err, "failed to create change logs client connection")
-		o.ChangeLogClient = crv1alpha1.NewChangeLogServiceClient(conn)
+
+		clo := controller.ChangeLogOptions{
+			ChangeLogClient: crv1alpha1.NewChangeLogServiceClient(conn),
+			ProviderVersion: fmt.Sprintf("provider-kubernetes:%s", version.Version),
+		}
+		o.ChangeLogOptions = &clo
 	}
 
 	// NOTE(lsviben): We are registering the conversion webhook with v1alpha1
