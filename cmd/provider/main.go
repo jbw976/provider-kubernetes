@@ -47,7 +47,7 @@ import (
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	crv1alpha1 "github.com/crossplane/crossplane-runtime/apis/proto/v1alpha1"
+	changelogs "github.com/crossplane/crossplane-runtime/apis/changelogs/proto/v1alpha1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -177,7 +177,7 @@ func main() {
 		kingpin.FatalIfError(err, "failed to create change logs client connection")
 
 		clo := controller.ChangeLogOptions{
-			ChangeLogClient: crv1alpha1.NewChangeLogServiceClient(conn),
+			ChangeLogClient: changelogs.NewChangeLogServiceClient(conn),
 			ProviderVersion: fmt.Sprintf("provider-kubernetes:%s", version.Version),
 		}
 		o.ChangeLogOptions = &clo
