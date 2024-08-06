@@ -195,7 +195,7 @@ func Setup(mgr ctrl.Manager, o controller.Options, sanitizeSecrets bool, pollJit
 	}
 
 	if o.Features.Enabled(feature.EnableAlphaChangeLogs) {
-		reconcilerOptions = append(reconcilerOptions, managed.WithChangeLogs(o.ChangeLogOptions.ChangeLogClient, o.ChangeLogOptions.ProviderVersion))
+		reconcilerOptions = append(reconcilerOptions, managed.WithChangeLogs(o.ChangeLogOptions.ChangeLogClient, o.ProviderVersion))
 	}
 
 	if err := mgr.Add(statemetrics.NewMRStateRecorder(
@@ -365,20 +365,20 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	return managed.ExternalUpdate{}, c.setObserved(cr, obj)
 }
 
-func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha2.Object)
 	if !ok {
-		return errors.New(errNotKubernetesObject)
+		return managed.ExternalDelete{}, errors.New(errNotKubernetesObject)
 	}
 
 	c.logger.Debug("Deleting", "resource", cr)
 
 	obj, err := getDesired(cr)
 	if err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
 
-	return errors.Wrap(resource.IgnoreNotFound(c.client.Delete(ctx, obj)), errDeleteObject)
+	return managed.ExternalDelete{}, errors.Wrap(resource.IgnoreNotFound(c.client.Delete(ctx, obj)), errDeleteObject)
 }
 
 func (c *external) Disconnect(ctx context.Context) error {

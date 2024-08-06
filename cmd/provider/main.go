@@ -156,6 +156,7 @@ func main() {
 		GlobalRateLimiter:       ratelimiter.NewGlobal(*maxReconcileRate),
 		Features:                &feature.Flags{},
 		MetricOptions:           &mo,
+		ProviderVersion:         fmt.Sprintf("provider-kubernetes:%s", version.Version),
 	}
 
 	if *enableManagementPolicies {
@@ -178,7 +179,6 @@ func main() {
 
 		clo := controller.ChangeLogOptions{
 			ChangeLogClient: changelogs.NewChangeLogServiceClient(conn),
-			ProviderVersion: fmt.Sprintf("provider-kubernetes:%s", version.Version),
 		}
 		o.ChangeLogOptions = &clo
 	}
