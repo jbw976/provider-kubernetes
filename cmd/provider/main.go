@@ -47,7 +47,7 @@ import (
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	changelogs "github.com/crossplane/crossplane-runtime/apis/changelogs/proto/v1alpha1"
+	changelogsv1alpha1 "github.com/crossplane/crossplane-runtime/apis/changelogs/proto/v1alpha1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -156,7 +156,6 @@ func main() {
 		GlobalRateLimiter:       ratelimiter.NewGlobal(*maxReconcileRate),
 		Features:                &feature.Flags{},
 		MetricOptions:           &mo,
-		ProviderVersion:         fmt.Sprintf("provider-kubernetes:%s", version.Version),
 	}
 
 	if *enableManagementPolicies {
@@ -178,7 +177,9 @@ func main() {
 		kingpin.FatalIfError(err, "failed to create change logs client connection")
 
 		clo := controller.ChangeLogOptions{
-			ChangeLogClient: changelogs.NewChangeLogServiceClient(conn),
+			ChangeLogger: managed.NewGRPCChangeLogger(
+				changelogsv1alpha1.NewChangeLogServiceClient(conn),
+				fmt.Sprintf("provider-kubernetes:%s", version.Version)),
 		}
 		o.ChangeLogOptions = &clo
 	}
