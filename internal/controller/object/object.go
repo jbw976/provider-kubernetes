@@ -195,7 +195,7 @@ func Setup(mgr ctrl.Manager, o controller.Options, sanitizeSecrets bool, pollJit
 	}
 
 	if o.Features.Enabled(feature.EnableAlphaChangeLogs) {
-		reconcilerOptions = append(reconcilerOptions, managed.WithChangeLogs(o.ChangeLogOptions.ChangeLogClient, o.ProviderVersion))
+		reconcilerOptions = append(reconcilerOptions, managed.WithChangeLogger(o.ChangeLogOptions.ChangeLogger))
 	}
 
 	if err := mgr.Add(statemetrics.NewMRStateRecorder(

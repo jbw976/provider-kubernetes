@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -156,7 +157,6 @@ func main() {
 		GlobalRateLimiter:       ratelimiter.NewGlobal(*maxReconcileRate),
 		Features:                &feature.Flags{},
 		MetricOptions:           &mo,
-		ProviderVersion:         fmt.Sprintf("provider-kubernetes:%s", version.Version),
 	}
 
 	if *enableManagementPolicies {
@@ -177,8 +177,19 @@ func main() {
 		conn, err := grpc.NewClient("unix://"+socketPath, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		kingpin.FatalIfError(err, "failed to create change logs client connection")
 
+		c := changelogs.NewChangeLogServiceClient(conn)
+		stream, err := c.SendChangeLog(context.Background())
+		kingpin.FatalIfError(err, "failed to open change log stream")
+
+		defer func() {
+			_, err := stream.CloseAndRecv()
+			kingpin.FatalIfError(err, "failed to close change log stream")
+		}()
+
 		clo := controller.ChangeLogOptions{
-			ChangeLogClient: changelogs.NewChangeLogServiceClient(conn),
+			ChangeLogger: managed.NewGRPCChangeLogger(
+				stream,
+				fmt.Sprintf("provider-kubernetes:%s", version.Version)),
 		}
 		o.ChangeLogOptions = &clo
 	}
