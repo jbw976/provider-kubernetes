@@ -179,7 +179,7 @@ func main() {
 		clo := controller.ChangeLogOptions{
 			ChangeLogger: managed.NewGRPCChangeLogger(
 				changelogsv1alpha1.NewChangeLogServiceClient(conn),
-				fmt.Sprintf("provider-kubernetes:%s", version.Version)),
+				managed.WithProviderVersion(fmt.Sprintf("provider-kubernetes:%s", version.Version))),
 		}
 		o.ChangeLogOptions = &clo
 	}
